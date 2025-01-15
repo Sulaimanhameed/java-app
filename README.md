@@ -57,7 +57,7 @@ Run the following command to run the application.
 gradle run
 ```
 
-If you build the application with Gradle, you can find the JAR file inside **/build/libs/spring-boot-0.0.1-SNAPSHOT.jar**
+If you build the application with Gradle, you can find the JAR file inside ***/build/libs/spring-boot-0.0.1-SNAPSHOT.jar***
 
 ### With Maven
 
@@ -73,5 +73,5 @@ Run the following command to run the application.
 mvn spring-boot:run
 ```
 
-If you build the application with Maven, you can find the JAR file inside **/target/spring-boot-0.0.1-SNAPSHOT.jar**
+If you build the application with Maven, you can find the JAR file inside ***/target/spring-boot-0.0.1-SNAPSHOT.jar***
 
