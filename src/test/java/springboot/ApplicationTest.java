@@ -21,6 +21,6 @@ public class ApplicationTest {
     public void indexEndpointReturnsExpectedMessage() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Greetings from Spring Boot!"));
+                .andExpect(content().string("Hi from Spring Boot"));
     }
 }
