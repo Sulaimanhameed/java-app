@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        build-tool: [gradle] # Defines which build tool to use
+        build-tool: [maven] # Defines which build tool to use
 
     steps:
       # Checkout the code
