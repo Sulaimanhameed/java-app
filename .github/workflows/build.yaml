@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        build-tool: [maven] # Defines which build tool to use
+        build-tool: [gradle] # Defines which build tool to use
 
     steps:
       # Checkout the code
@@ -34,7 +34,7 @@ jobs:
         run: |
           if [ "${{ matrix.build-tool }}" == "gradle" ]; then
             echo "Using Gradle"
-            gradle clean build --warning-mode all
+            gradle build
           else
             echo "Using Maven"
             mvn clean install
