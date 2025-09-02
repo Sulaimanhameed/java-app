@@ -1,0 +1,90 @@
+name: Self-Hosted Matrix Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  matrix-test:
+    name: Test Java ${{ matrix.java-version }} on ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        java-version: [17, 21]  # Start with 2 versions first
+        os: [ubuntu-22.04, ubuntu-24.04]
+      fail-fast: false
+      max-parallel: 4
+    
+    runs-on: [self-hosted, '${{ matrix.os }}']
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          clean: true
+      
+      - name: Display Runner Info
+        run: |
+          echo "Runner: $(hostname)"
+          echo "  OS: $(lsb_release -d)"
+          echo " Workspace: ${{ github.workspace }}"
+          echo "Matrix: Java ${{ matrix.java-version }} on ${{ matrix.os }}"
+      
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: '${{ matrix.java-version }}'
+          distribution: 'temurin'
+          cache: maven
+      
+      - name: Verify Java and Maven
+        run: |
+          echo " Java version:"
+          java -version
+          echo " Maven version:"
+          ./mvnw -version
+      
+      - name: Make Maven Wrapper Executable
+        run: chmod +x ./mvnw
+      
+      - name: Run Tests
+        run: |
+          echo " Running tests..."
+          ./mvnw clean test -B
+      
+      - name: Build Application
+        run: |
+          echo " Building application..."
+          ./mvnw clean package -DskipTests -B
+      
+      - name: Verify Build Output
+        run: |
+          echo " Build verification:"
+          ls -la target/
+          if ls target/*.jar 1> /dev/null 2>&1; then
+            echo " JAR file created successfully:"
+            ls -lh target/*.jar
+          else
+            echo " No JAR file found"
+            exit 1
+          fi
+
+  build-summary:
+    name: Matrix Build Summary
+    needs: matrix-test
+    runs-on: [self-hosted]
+    if: always()
+    
+    steps:
+      - name: Display Results
+        run: |
+          echo " Matrix Build Complete!"
+          echo "Tested combinations:"
+          echo "  • Java 17 + Ubuntu 22.04"
+          echo "  • Java 17 + Ubuntu 24.04" 
+          echo "  • Java 21 + Ubuntu 22.04"
+          echo "  • Java 21 + Ubuntu 24.04"
