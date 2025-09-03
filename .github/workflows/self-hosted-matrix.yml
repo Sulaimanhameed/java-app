@@ -2,9 +2,9 @@ name: Self-Hosted Matrix Build with Docker
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main]
   pull_request:
-    branches: [ main, master ]
+    branches: [main]
   workflow_dispatch:
 
 env:
@@ -17,7 +17,7 @@ jobs:
     
     strategy:
       matrix:
-        java-version: [17, 21]
+        java-version: [17, 21, 24]
         os: [ubuntu-22.04, ubuntu-24.04]
       fail-fast: false
       max-parallel: 4
