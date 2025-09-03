@@ -1,7 +1,6 @@
 # Multi-stage Dockerfile for Java Spring Boot application
-
 # Stage 1: Build stage
-FROM openjdk:17-jdk-slim AS build
+FROM eclipse-temurin:17-jdk-alpine AS build
 
 # Set working directory
 WORKDIR /app
@@ -24,13 +23,14 @@ COPY src ./src
 RUN ./mvnw clean package -DskipTests -B
 
 # Stage 2: Runtime stage
-FROM openjdk:17-jre-slim AS runtime
+FROM eclipse-temurin:17-jre-alpine AS runtime
 
 # Install curl for health checks (optional)
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache curl
 
 # Create non-root user for security
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN addgroup -g 1001 -S appuser && \
+    adduser -S appuser -u 1001 -G appuser
 
 # Set working directory
 WORKDIR /app
