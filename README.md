@@ -10,7 +10,7 @@ Before building and running the application, ensure you have the following insta
 
 ---
 
-## Verify Installations
+## Verify Installations /
 To verify installations, use the following commands:
 
 ### Check Java Version
