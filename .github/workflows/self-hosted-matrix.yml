@@ -53,10 +53,32 @@ jobs:
           if [ -f ~/.sdkman/bin/sdkman-init.sh ]; then
             echo "Setting up SDKMAN environment..."
             source ~/.sdkman/bin/sdkman-init.sh
-            # Add SDKMAN paths to GitHub Actions environment
-            echo "$HOME/.sdkman/candidates/maven/current/bin" >> $GITHUB_PATH
-            echo "$HOME/.sdkman/candidates/java/current/bin" >> $GITHUB_PATH
-            echo "$HOME/.sdkman/candidates/gradle/current/bin" >> $GITHUB_PATH
+            
+            # Check what's installed in SDKMAN
+            echo "SDKMAN candidates directory contents:"
+            ls -la ~/.sdkman/candidates/
+            
+            # Check if Maven is installed and current symlink exists
+            if [ -d ~/.sdkman/candidates/maven/current ]; then
+              echo "Maven current version found:"
+              ls -la ~/.sdkman/candidates/maven/current/bin/
+              echo "$HOME/.sdkman/candidates/maven/current/bin" >> $GITHUB_PATH
+            else
+              echo "Maven not found in SDKMAN, installing via SDKMAN..."
+              sdk install maven || {
+                echo "SDKMAN Maven install failed, falling back to apt..."
+                sudo apt-get update
+                sudo apt-get install -y maven
+              }
+            fi
+            
+            # Add Java and Gradle paths if they exist
+            if [ -d ~/.sdkman/candidates/java/current ]; then
+              echo "$HOME/.sdkman/candidates/java/current/bin" >> $GITHUB_PATH
+            fi
+            if [ -d ~/.sdkman/candidates/gradle/current ]; then
+              echo "$HOME/.sdkman/candidates/gradle/current/bin" >> $GITHUB_PATH
+            fi
           else
             echo "SDKMAN not found, installing Maven via apt..."
             sudo apt-get update
@@ -75,6 +97,11 @@ jobs:
       
       - name: Add Maven Wrapper if Missing
         run: |
+          # Initialize SDKMAN if available
+          if [ -f ~/.sdkman/bin/sdkman-init.sh ]; then
+            source ~/.sdkman/bin/sdkman-init.sh
+          fi
+          
           if [ ! -f "mvnw" ]; then
             echo "Maven wrapper not found, generating it..."
             mvn wrapper:wrapper
