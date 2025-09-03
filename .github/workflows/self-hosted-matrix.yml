@@ -48,6 +48,21 @@ jobs:
           distribution: 'temurin'
           cache: maven
       
+      - name: Setup SDKMAN Environment
+        run: |
+          if [ -f ~/.sdkman/bin/sdkman-init.sh ]; then
+            echo "Setting up SDKMAN environment..."
+            source ~/.sdkman/bin/sdkman-init.sh
+            # Add SDKMAN paths to GitHub Actions environment
+            echo "$HOME/.sdkman/candidates/maven/current/bin" >> $GITHUB_PATH
+            echo "$HOME/.sdkman/candidates/java/current/bin" >> $GITHUB_PATH
+            echo "$HOME/.sdkman/candidates/gradle/current/bin" >> $GITHUB_PATH
+          else
+            echo "SDKMAN not found, installing Maven via apt..."
+            sudo apt-get update
+            sudo apt-get install -y maven
+          fi
+
       - name: Verify Java and Maven
         run: |
           echo "Java version:"
@@ -191,6 +206,8 @@ jobs:
           echo "  • Java 17 + Ubuntu 24.04" 
           echo "  • Java 21 + Ubuntu 22.04"
           echo "  • Java 21 + Ubuntu 24.04"
+          echo "  • Java 24 + Ubuntu 22.04"
+          echo "  • Java 24 + Ubuntu 24.04"
           echo ""
           if [ "${{ needs.docker-build-push.result }}" == "success" ]; then
             echo "Docker image built and pushed successfully!"
