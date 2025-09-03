@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       max-parallel: 4
     
-    runs-on: [self-hosted, '${{ matrix.os }}']
+    runs-on: self-hosted
     timeout-minutes: 30
     
     steps:
@@ -29,11 +29,11 @@ jobs:
       
       - name: Display Runner Info
         run: |
-          echo "🏃‍♂️ Runner: $(hostname)"
-          echo "🖥️ OS: $(lsb_release -d || echo 'Ubuntu')"
-          echo "📁 Workspace: ${{ github.workspace }}"
-          echo "🔧 Matrix: Java ${{ matrix.java-version }} on ${{ matrix.os }}"
-          echo "💾 Available Java versions:"
+          echo " Runner: $(hostname)"
+          echo " OS: $(lsb_release -d || echo 'Ubuntu')"
+          echo " Workspace: ${{ github.workspace }}"
+          echo " Matrix: Java ${{ matrix.java-version }} on ${{ matrix.os }}"
+          echo " Available Java versions:"
           sdk list java | head -10 || echo "SDKMAN not in PATH"
       
       - name: Set up JDK ${{ matrix.java-version }}
@@ -48,11 +48,11 @@ jobs:
           echo "☕ Java version:"
           java -version
           echo ""
-          echo "📦 Maven version:"
+          echo " Maven version:"
           ./mvnw -version
           echo ""
-          echo "🏠 JAVA_HOME: $JAVA_HOME"
-          echo "🔍 Available Java installations:"
+          echo " JAVA_HOME: $JAVA_HOME"
+          echo " Available Java installations:"
           ls -la ~/.sdkman/candidates/java/ || echo "SDKMAN java not found"
       
       - name: Make Maven Wrapper Executable
@@ -60,37 +60,37 @@ jobs:
       
       - name: Clean Previous Builds
         run: |
-          echo "🧹 Cleaning previous builds..."
+          echo " Cleaning previous builds..."
           rm -rf target/ || true
       
       - name: Run Tests
         run: |
-          echo "🧪 Running tests..."
+          echo "Running tests..."
           ./mvnw clean test -B -q
       
       - name: Build Application
         run: |
-          echo "📦 Building application..."
+          echo " Building application..."
           ./mvnw clean package -DskipTests -B -q
       
       - name: Verify Build Output
         run: |
-          echo "✅ Build verification:"
+          echo " Build verification:"
           ls -la target/
           if ls target/*.jar 1> /dev/null 2>&1; then
-            echo "✅ JAR file created successfully:"
+            echo " JAR file created successfully:"
             ls -lh target/*.jar
             echo ""
-            echo "📝 JAR file details:"
+            echo " JAR file details:"
             file target/*.jar
           else
-            echo "❌ No JAR file found"
+            echo " No JAR file found"
             exit 1
           fi
       
       - name: Test JAR Execution
         run: |
-          echo "🚀 Testing JAR execution..."
+          echo " Testing JAR execution..."
           for jar in target/*.jar; do
             if [[ "$jar" != *"sources.jar" ]] && [[ "$jar" != *"javadoc.jar" ]]; then
               echo "Testing: $jar"
@@ -116,12 +116,12 @@ jobs:
     steps:
       - name: Display Results
         run: |
-          echo "🎯 Matrix Build Complete!"
-          echo "📋 Successfully tested combinations:"
+          echo "Matrix Build Complete!"
+          echo " Successfully tested combinations:"
           echo "  • Java 17 + Ubuntu 22.04"
           echo "  • Java 17 + Ubuntu 24.04" 
           echo "  • Java 21 + Ubuntu 22.04"
           echo "  • Java 21 + Ubuntu 24.04"
           echo ""
-          echo "📦 Artifacts generated for each combination"
-          echo "🚀 All runners performed successfully"
+          echo " Artifacts generated for each combination"
+          echo " All runners performed successfully"
