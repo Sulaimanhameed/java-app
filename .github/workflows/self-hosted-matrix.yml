@@ -13,12 +13,12 @@ jobs:
     
     strategy:
       matrix:
-        java-version: [17, 21]  # Using available versions
+        java-version: [17, 21]
         os: [ubuntu-22.04, ubuntu-24.04]
       fail-fast: false
       max-parallel: 4
     
-    runs-on: self-hosted
+    runs-on: [self-hosted, '${{ matrix.os }}']
     timeout-minutes: 30
     
     steps:
@@ -29,12 +29,10 @@ jobs:
       
       - name: Display Runner Info
         run: |
-          echo " Runner: $(hostname)"
-          echo " OS: $(lsb_release -d || echo 'Ubuntu')"
-          echo " Workspace: ${{ github.workspace }}"
-          echo " Matrix: Java ${{ matrix.java-version }} on ${{ matrix.os }}"
-          echo " Available Java versions:"
-          sdk list java | head -10 || echo "SDKMAN not in PATH"
+          echo "Runner: $(hostname)"
+          echo "OS: $(lsb_release -d 2>/dev/null || echo 'Linux')"
+          echo "Workspace: ${{ github.workspace }}"
+          echo "Matrix: Java ${{ matrix.java-version }} on ${{ matrix.os }}"
       
       - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v4
@@ -45,59 +43,51 @@ jobs:
       
       - name: Verify Java and Maven
         run: |
-          echo "☕ Java version:"
+          echo "Java version:"
           java -version
           echo ""
-          echo " Maven version:"
-          ./mvnw -version
+          echo "Maven version:"
+          mvn -version
           echo ""
-          echo " JAVA_HOME: $JAVA_HOME"
-          echo " Available Java installations:"
-          ls -la ~/.sdkman/candidates/java/ || echo "SDKMAN java not found"
+          echo "JAVA_HOME: $JAVA_HOME"
       
-      - name: Make Maven Wrapper Executable
-        run: chmod +x ./mvnw
+      - name: List Project Files
+        run: |
+          echo "Project structure:"
+          ls -la
+          echo ""
+          echo "Checking for Maven wrapper:"
+          ls -la mvnw* || echo "No Maven wrapper found"
       
       - name: Clean Previous Builds
         run: |
-          echo " Cleaning previous builds..."
+          echo "Cleaning previous builds..."
           rm -rf target/ || true
       
       - name: Run Tests
         run: |
           echo "Running tests..."
-          ./mvnw clean test -B -q
+          mvn clean test -B
       
       - name: Build Application
         run: |
-          echo " Building application..."
-          ./mvnw clean package -DskipTests -B -q
+          echo "Building application..."
+          mvn clean package -DskipTests -B
       
       - name: Verify Build Output
         run: |
-          echo " Build verification:"
+          echo "Build verification:"
           ls -la target/
           if ls target/*.jar 1> /dev/null 2>&1; then
-            echo " JAR file created successfully:"
+            echo "JAR file created successfully:"
             ls -lh target/*.jar
             echo ""
-            echo " JAR file details:"
+            echo "JAR file details:"
             file target/*.jar
           else
-            echo " No JAR file found"
+            echo "No JAR file found"
             exit 1
           fi
-      
-      - name: Test JAR Execution
-        run: |
-          echo " Testing JAR execution..."
-          for jar in target/*.jar; do
-            if [[ "$jar" != *"sources.jar" ]] && [[ "$jar" != *"javadoc.jar" ]]; then
-              echo "Testing: $jar"
-              timeout 10s java -jar "$jar" --help || echo "JAR test completed (expected timeout)"
-              break
-            fi
-          done
       
       - name: Upload JAR Artifact
         uses: actions/upload-artifact@v4
@@ -117,11 +107,10 @@ jobs:
       - name: Display Results
         run: |
           echo "Matrix Build Complete!"
-          echo " Successfully tested combinations:"
+          echo "Tested combinations:"
           echo "  • Java 17 + Ubuntu 22.04"
           echo "  • Java 17 + Ubuntu 24.04" 
           echo "  • Java 21 + Ubuntu 22.04"
           echo "  • Java 21 + Ubuntu 24.04"
           echo ""
-          echo " Artifacts generated for each combination"
-          echo " All runners performed successfully"
+          echo "Check individual job logs for detailed results"
