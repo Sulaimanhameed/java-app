@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKER_IMAGE_NAME: sulaimanhameed/java-app
+  DOCKER_IMAGE_NAME: catninjauser/java-app
   DOCKER_REGISTRY: docker.io
 
 jobs:
