@@ -48,43 +48,6 @@ jobs:
           distribution: 'temurin'
           cache: maven
       
-      - name: Setup SDKMAN Environment
-        run: |
-          if [ -f ~/.sdkman/bin/sdkman-init.sh ]; then
-            echo "Setting up SDKMAN environment..."
-            source "/home/ubuntu/.sdkman/bin/sdkman-init.sh"
-            
-            # Check what's installed in SDKMAN
-            echo "SDKMAN candidates directory contents:"
-            ls -la ~/.sdkman/candidates/
-            
-            # Check if Maven is installed and current symlink exists
-            if [ -d ~/home/ubuntu/.sdkman/candidates/maven/current ]; then
-              echo "Maven current version found:"
-              ls -la ~/home/ubuntu/.sdkman/candidates/maven/current/bin/
-              echo "$HOME/ubuntu/.sdkman/candidates/maven/current/bin" >> $GITHUB_PATH
-            else
-              echo "Maven not found in SDKMAN, installing via SDKMAN..."
-              sdk install maven || {
-                echo "SDKMAN Maven install failed, falling back to apt..."
-                sudo apt-get update
-                sudo apt-get install -y maven
-              }
-            fi
-            
-            # Add Java and Gradle paths if they exist
-            if [ -d ~/home/ubuntu/.sdkman/candidates/java/current ]; then
-              echo "$HOME/ubuntu/.sdkman/candidates/java/current/bin" >> $GITHUB_PATH
-            fi
-            if [ -d ~/home/ubuntu/.sdkman/candidates/gradle/current ]; then
-              echo "$HOME/ubuntu/.sdkman/candidates/gradle/current/bin" >> $GITHUB_PATH
-            fi
-          else
-            echo "SDKMAN not found, installing Maven via apt..."
-            sudo apt-get update
-            sudo apt-get install -y maven
-          fi
-
       - name: Verify Java and Maven
         run: |
           echo "Java version:"
@@ -97,11 +60,6 @@ jobs:
       
       - name: Add Maven Wrapper if Missing
         run: |
-          # Initialize SDKMAN if available
-          if [ -f ~/home/ubuntu/.sdkman/bin/sdkman-init.sh ]; then
-            source ~/home/ubuntu/.sdkman/bin/sdkman-init.sh
-          fi
-          
           if [ ! -f "mvnw" ]; then
             echo "Maven wrapper not found, generating it..."
             mvn wrapper:wrapper
@@ -217,7 +175,6 @@ jobs:
           # Test pull the image
           docker pull ${{ env.DOCKER_IMAGE_NAME }}:latest
           echo "Docker image verified and ready!"
-
   build-summary:
     name: Matrix Build Summary  
     needs: [matrix-test, docker-build-push]
@@ -233,8 +190,6 @@ jobs:
           echo "  • Java 17 + Ubuntu 24.04" 
           echo "  • Java 21 + Ubuntu 22.04"
           echo "  • Java 21 + Ubuntu 24.04"
-          echo "  • Java 24 + Ubuntu 22.04"
-          echo "  • Java 24 + Ubuntu 24.04"
           echo ""
           if [ "${{ needs.docker-build-push.result }}" == "success" ]; then
             echo "Docker image built and pushed successfully!"
