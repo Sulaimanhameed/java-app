@@ -111,6 +111,7 @@ jobs:
     name: Build and Push Docker Image
     needs: matrix-test
     runs-on: [self-hosted]
+    timeout-minutes: 30
     if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
@@ -190,6 +191,8 @@ jobs:
           echo "  • Java 17 + Ubuntu 24.04" 
           echo "  • Java 21 + Ubuntu 22.04"
           echo "  • Java 21 + Ubuntu 24.04"
+          echo "  • Java 24 + Ubuntu 22.04"
+          echo "  • Java 24 + Ubuntu 24.04"
           echo ""
           if [ "${{ needs.docker-build-push.result }}" == "success" ]; then
             echo "Docker image built and pushed successfully!"
