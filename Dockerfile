@@ -2,7 +2,7 @@ FROM techiescamp/jre-17:1.0.0
 
 WORKDIR /app
 
-# Copy the JAR file (remove 'src/' from the path)
+# Copy the JAR file 
 COPY target/*.jar ./java.jar
 
 # Expose port
