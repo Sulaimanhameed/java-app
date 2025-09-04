@@ -127,28 +127,20 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: application-jar
-          path: target/  # Download directly to target directory
+          path: target/
 
-      - name: Verify JAR artifact exists
+      - name: Prepare JAR for Docker build
         run: |
-          echo "Checking downloaded artifacts in target/:"
+          echo "Preparing JAR file for Docker..."
+          echo "Files in target/:"
           ls -la target/
-          if ls target/*.jar 1> /dev/null 2>&1; then
-            echo "JAR files found:"
-            ls -lh target/*.jar
-            echo "JAR file size: $(du -h target/*.jar | cut -f1)"
-          else
-            echo "ERROR: No JAR files found in target/"
-            exit 1
-          fi
-
-      - name: List all files for debugging
-        run: |
-          echo "Current working directory: $(pwd)"
-          echo "Full directory structure:"
-          find . -name "*.jar" -type f
-          echo "Target directory contents:"
-          ls -la target/
+          
+          # Copy JAR to root directory with consistent name
+          cp target/*.jar ./app.jar
+          
+          echo "JAR copied to root:"
+          ls -la *.jar
+          echo "JAR file size: $(du -h *.jar | cut -f1)"
 
       - name: Fix Docker permissions
         run: |
@@ -176,7 +168,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .  # Build context is current directory
+          context: .
           file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
