@@ -122,47 +122,47 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: true
-      
+
       - name: Download JAR Artifact
         uses: actions/download-artifact@v4
         with:
           name: application-jar
-          path: target/
-      
+          path: target/  # Download directly to target directory
+
       - name: Verify JAR artifact exists
-        working-directory: /home/ubuntu/actions-runner/_work/java-app/java-app/
         run: |
-          echo "Checking downloaded artifacts:"
+          echo "Checking downloaded artifacts in target/:"
           ls -la target/
           if ls target/*.jar 1> /dev/null 2>&1; then
             echo "JAR files found:"
             ls -lh target/*.jar
+            echo "JAR file size: $(du -h target/*.jar | cut -f1)"
           else
-            echo " No JAR files found in target/"
+            echo "ERROR: No JAR files found in target/"
             exit 1
           fi
-      
-      - name: Debug build context
-        working-directory: /home/ubuntu/actions-runner/_work/java-app/java-app/
+
+      - name: List all files for debugging
         run: |
           echo "Current working directory: $(pwd)"
-          echo "Directory structure:"
-          find . -name "*.jar" -type f || echo "No JAR files found"
-          ls -la
-      
+          echo "Full directory structure:"
+          find . -name "*.jar" -type f
+          echo "Target directory contents:"
+          ls -la target/
+
       - name: Fix Docker permissions
         run: |
           sudo chmod 666 /var/run/docker.sock
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -172,42 +172,19 @@ jobs:
             type=ref,event=branch
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
-      
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: /home/ubuntu/actions-runner/_work/java-app/java-app
-          file:  /home/ubuntu/actions-runner/_work/java-app/java-app/Dockerfile
+          context: .  # Build context is current directory
+          file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      
+
       - name: Verify Docker image
         run: |
           echo "Docker image pushed successfully!"
-          echo "Image tags:"
-          echo "${{ steps.meta.outputs.tags }}"
-          docker pull ${{ env.DOCKER_IMAGE_NAME }}:latest
-          echo "Docker image verified and ready!"
-  build-summary:
-    name: Build Summary  
-    needs: [test, build, dockerize-and-push]
-    runs-on: [self-hosted]
-    if: always()
-    
-    steps:
-      - name: Display Results
-        run: |
-          echo "Build Pipeline Complete!"
-          echo ""
-          echo "Tests ran on matrix combinations:"
-          echo "  • Java 17, 21, 24 on Ubuntu 22.04 & 24.04"
-          echo ""
-          echo "Build Status: ${{ needs.build.result }}"
-          echo "Docker Status: ${{ needs.dockerize-and-push.result }}"
-          echo ""
-          if [ "${{ needs.dockerize-and-push.result }}" == "success" ]; then
-            echo " Docker image available: docker pull ${{ env.DOCKER_IMAGE_NAME }}:latest"
-          fi
+          echo "Image tags: ${{ steps.meta.outputs.tags }}"
