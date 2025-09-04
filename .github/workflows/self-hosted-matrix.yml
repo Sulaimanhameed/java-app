@@ -131,17 +131,25 @@ jobs:
           path: target/
       
       - name: Verify JAR artifact exists
-        working-directory: /home/ubuntu/actions-runner/_work/java-app/java-app
+        working-directory: /home/ubuntu/actions-runner/_work/java-app/java-app/
         run: |
           echo "Checking downloaded artifacts:"
           ls -la target/
           if ls target/*.jar 1> /dev/null 2>&1; then
-            echo "✅ JAR files found:"
+            echo "JAR files found:"
             ls -lh target/*.jar
           else
-            echo "❌ No JAR files found in target/"
+            echo " No JAR files found in target/"
             exit 1
           fi
+      
+      - name: Debug build context
+        working-directory: /home/ubuntu/actions-runner/_work/java-app/java-app/
+        run: |
+          echo "Current working directory: $(pwd)"
+          echo "Directory structure:"
+          find . -name "*.jar" -type f || echo "No JAR files found"
+          ls -la
       
       - name: Fix Docker permissions
         run: |
@@ -169,7 +177,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: /home/ubuntu/actions-runner/_work/java-app/java-app
+          context: .
           file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
