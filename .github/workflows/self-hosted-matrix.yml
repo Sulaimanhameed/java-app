@@ -130,6 +130,23 @@ jobs:
           name: application-jar
           path: target/
       
+      - name: Verify JAR artifact exists
+        working-directory: /home/ubuntu/actions-runner/_work/java-app/java-app
+        run: |
+          echo "Checking downloaded artifacts:"
+          ls -la target/
+          if ls target/*.jar 1> /dev/null 2>&1; then
+            echo "✅ JAR files found:"
+            ls -lh target/*.jar
+          else
+            echo "❌ No JAR files found in target/"
+            exit 1
+          fi
+      
+      - name: Fix Docker permissions
+        run: |
+          sudo chmod 666 /var/run/docker.sock
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
@@ -152,7 +169,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: /home/ubuntu/actions-runner/_work/java-app/java-app
           file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -166,7 +183,7 @@ jobs:
           echo "Image tags:"
           echo "${{ steps.meta.outputs.tags }}"
           docker pull ${{ env.DOCKER_IMAGE_NAME }}:latest
-          echo "Docker image verified!"
+          echo "Docker image verified and ready!"
 
   build-summary:
     name: Build Summary  
@@ -179,7 +196,7 @@ jobs:
         run: |
           echo "Build Pipeline Complete!"
           echo ""
-          echo " Tests ran on matrix combinations:"
+          echo "Tests ran on matrix combinations:"
           echo "  • Java 17, 21, 24 on Ubuntu 22.04 & 24.04"
           echo ""
           echo "Build Status: ${{ needs.build.result }}"
