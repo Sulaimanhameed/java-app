@@ -2,11 +2,11 @@ FROM techiescamp/jre-17:1.0.0
 
 WORKDIR /app
 
-# Copy the JAR file (/app)
-COPY src/target/*.jar ./java.jar
+# Copy the JAR file (remove 'src/' from the path)
+COPY target/*.jar ./java.jar
 
-# Expose the port the app runs on
+# Expose port
 EXPOSE 8080
 
-# Run the jar file
+# Run the application
 CMD ["java", "-jar", "java.jar"]
