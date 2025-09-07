@@ -1,182 +1,50 @@
-name: Optimized Matrix Build with Docker
+name: Java Matrix Build and Docker Publish
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: [ "main" ]
   workflow_dispatch:
 
-env:
-  DOCKER_IMAGE_NAME: catninjauser/java-app
-  DOCKER_REGISTRY: docker.io
-
 jobs:
-  test:
-    name: Test Java ${{ matrix.java-version }} on ${{ matrix.os }}
-    
+  build-and-publish:
     strategy:
+      fail-fast: false
       matrix:
         java-version: [17, 21, 24]
         os: [ubuntu-22.04, ubuntu-24.04]
-      fail-fast: false
-      max-parallel: 4
-    
-    runs-on: [self-hosted, '${{ matrix.os }}']
-    timeout-minutes: 30
-    
+
+    runs-on: ${{ matrix.os }}
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          clean: true
-      
-      - name: Display Runner Info
-        run: |
-          echo "Runner: $(hostname)"
-          echo "OS: $(lsb_release -d 2>/dev/null || echo 'Linux')"
-          echo "Matrix: Java ${{ matrix.java-version }} on ${{ matrix.os }}"
-      
+
       - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v4
         with:
-          java-version: '${{ matrix.java-version }}'
+          java-version: ${{ matrix.java-version }}
           distribution: 'temurin'
-          cache: maven
-      
-      - name: Add Maven Wrapper if Missing
-        run: |
-          if [ ! -f "mvnw" ]; then
-            mvn wrapper:wrapper
-            chmod +x mvnw
-          else
-            chmod +x mvnw
-          fi
-      
-      - name: Run Tests Only
-        run: |
-          echo "Running tests..."
-          ./mvnw clean test -B
-  build:
-    name: Build Application
-    needs: test
-    runs-on: [self-hosted]
-    timeout-minutes: 20
-    if: success()
-    
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          clean: true
-      
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-      
-      - name: Add Maven Wrapper if Missing
-        run: |
-          if [ ! -f "mvnw" ]; then
-            mvn wrapper:wrapper
-            chmod +x mvnw
-          else
-            chmod +x mvnw
-          fi
-      
-      - name: Build Application
-        run: |
-          echo "Building application..."
-          ./mvnw clean package -DskipTests -B
-      
-      - name: Verify Build Output
-        run: |
-          echo "Build verification:"
-          ls -la target/
-          if ls target/*.jar 1> /dev/null 2>&1; then
-            echo "JAR file created successfully:"
-            ls -lh target/*.jar
-          else
-            echo "No JAR file found"
-            exit 1
-          fi
-      
-      - name: Upload JAR Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: application-jar
-          path: target/*.jar
-          retention-days: 7
+          cache: 'maven'
 
-  dockerize-and-push:
-    name: Dockerize and Push
-    needs: build
-    runs-on: [self-hosted]
-    timeout-minutes: 20
-    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          clean: true
-
-      - name: Download JAR Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: application-jar
-          path: target/
-
-      - name: Prepare JAR for Docker build
-        run: |
-          echo "Preparing JAR file for Docker..."
-          echo "Files in target/:"
-          ls -la target/
-          
-          # Copy JAR to root directory with consistent name
-          cp target/*.jar ./app.jar
-          
-          echo "JAR copied to root:"
-          ls -la *.jar
-          echo "JAR file size: $(du -h *.jar | cut -f1)"
-
-      - name: Fix Docker permissions
-        run: |
-          sudo chmod 666 /var/run/docker.sock
+      - name: Build with Maven
+        run: ./mvnw clean package -DskipTests -B
 
       - name: Set up Docker Buildx
+        # This 'if' condition checks the runner's labels
+        if: runner.labels.self-hosted == true
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker Hub
+      - name: Login to Docker Hub
+        if: runner.labels.self-hosted == true
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKER_IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
+        if: runner.labels.self-hosted == true
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Verify Docker image
-        run: |
-          echo "Docker image pushed successfully!"
-          echo "Image tags: ${{ steps.meta.outputs.tags }}"
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:${{ matrix.java-version }}-${{ matrix.os }}
