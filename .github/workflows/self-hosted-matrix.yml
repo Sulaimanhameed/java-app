@@ -6,14 +6,17 @@ on:
 
 jobs:
   test-runner:
-    runs-on: arc-runner-set  
+    runs-on: arc-runner-set
     steps:
       - name: Echo test message
         run: echo "This job is running on ARC runner!"
       
       - name: Show runner info
         run: |
-          echo "Runner name: $RUNNER_NAME"  >> /vagrant/arc/test.txt
-          echo "Runner OS: $RUNNER_OS" >> /vagrant/arc/test.txt
-          whoami >> /vagrant/arc/test.txt
-          pwd >> /vagrant/arc/test.txt
+          echo "Runner name: $RUNNER_NAME"
+          echo "Runner OS: $RUNNER_OS"
+          echo "Runner arch: $RUNNER_ARCH"
+          whoami
+          pwd
+          ls -la
+          
