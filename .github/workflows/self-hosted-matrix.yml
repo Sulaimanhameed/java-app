@@ -15,24 +15,20 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: arc-runner-set  # Must match your ARC runner set name
+    runs-on: arc-runner-set   # This should match your ARC runner set name
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/<YOUR_OIDC_ROLE>
-          aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
-      # Optional: QEMU for multi-arch builds
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        with:
+          mask-password: true
+          registry-type: private
+          skip-logout: false
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
