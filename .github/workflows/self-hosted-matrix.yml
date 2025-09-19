@@ -35,6 +35,6 @@ jobs:
 
       - name: Image info
         run: |
-          echo "✅ Image pushed successfully!"
+          echo "Image pushed successfully!"
           echo "Repository: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
           echo "Tags: latest, ${{ github.sha }}"
