@@ -4,60 +4,47 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read    # Required for checkout
+
 env:
-  AWS_REGION: us-west-2  # Change to your region
-  ECR_REPOSITORY: java-app  # Change to your ECR repo name
+  AWS_REGION: us-west-2
+  ECR_REPOSITORY: java-app
 
 jobs:
   build-and-push:
-    runs-on: arc-runner-set  # Change to your ARC runner name
-    permissions:
-      id-token: write   # Required for OIDC
-      contents: read    # Required to checkout code
-    
+    runs-on: arc-runner-set  # This should match your ARC runner set name
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Install AWS CLI
-        run: |
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install
-          aws --version
-
-      - name: Configure AWS CLI
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: ${{ env.AWS_REGION }}
-          # Pod Identity will automatically provide credentials
-
-      - name: Verify AWS Identity
-        run: |
-          aws sts get-caller-identity
-          echo "AWS_REGION: ${{ env.AWS_REGION }}"
-
+        
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
+        with:
+          mask-password: true
+          registry-type: private
+          skip-logout: false
+        env:
+          AWS_REGION: us-west-2
+          
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
+        
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64  # Start with single platform
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
+            
       - name: Image info
         run: |
-          echo "Image pushed successfully!"
-          echo "Image URI: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
+          echo "✅ Image pushed successfully!"
+          echo "Repository: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
+          echo "Tags: latest, ${{ github.sha }}"
