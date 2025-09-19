@@ -1,22 +1,40 @@
-name: Test ARC Runners
+name: Build and Push to ECR
 on:
   push:
-    branches: ["main"]
+    branches: [main]
   workflow_dispatch:
 
+env:
+  AWS_REGION: us-west-2  # Change to your region
+  ECR_REPOSITORY: java-app  # Change to your ECR repo name
+
 jobs:
-  test-runner:
-    runs-on: arc-runner-set
+  build-and-push:
+    runs-on: arc-runner-set  # Change to your ARC runner name
     steps:
-      - name: Echo test message
-        run: echo "This job is running on ARC runner!"
-      
-      - name: Show runner info
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64  # Start with single platform
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+      - name: Image info
         run: |
-          echo "Runner name: $RUNNER_NAME"
-          echo "Runner OS: $RUNNER_OS"
-          echo "Runner arch: $RUNNER_ARCH"
-          whoami
-          pwd
-          ls -la
-          
+          echo "✅ Image pushed successfully!"
+          echo "Repository: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
+          echo "Tags: latest, ${{ github.sha }}"
