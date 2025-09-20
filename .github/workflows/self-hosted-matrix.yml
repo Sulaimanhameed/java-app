@@ -1,4 +1,4 @@
-name: Build and Push to ECR
+name: Build and Push to ECR with Remote Buildx
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write   # Required for OIDC
-  contents: read    # Required for checkout
+  id-token: write
+  contents: read
 
 env:
   AWS_REGION: us-west-2
@@ -15,38 +15,44 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: arc-runner-set   # This should match your ARC runner set name
+    runs-on: arc-runner-set
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-        with:
-          mask-password: true
-          registry-type: private
-          skip-logout: false
-        env:
-          AWS_REGION: ${{ env.AWS_REGION }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
-          
-      - name: Image info
-        run: |
-          echo "✅ Image pushed successfully!"
-          echo "Repository: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
-          echo "Tags: latest, ${{ github.sha }}"
+    - name: Checkout code
+      uses: actions/checkout@v5
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        driver: remote
+        endpoint: tcp://buildkitd:1234
+        driver-opts: |
+          image=moby/buildkit:latest
+    
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      with:
+        mask-password: true
+        registry-type: private
+      env:
+        AWS_REGION: ${{ env.AWS_REGION }}
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        platforms: linux/amd64
+        tags: |
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Image info
+      run: |
+        echo "✅ Image pushed successfully!"
+        echo "Repository: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
+        echo "Tags: latest, ${{ github.sha }}"
