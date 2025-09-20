@@ -3,7 +3,7 @@ FROM techiescamp/jre-17:1.0.0
 WORKDIR /app
 
 # Copy the JAR file - use specific filename instead of wildcard
-COPY target/spring-boot-1.0.0-SNAPSHOT.jar ./java.jar
+COPY target/*.jar java.jar
 
 # Expose port
 EXPOSE 8080
