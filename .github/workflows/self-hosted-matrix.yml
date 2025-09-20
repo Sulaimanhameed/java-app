@@ -30,15 +30,21 @@ jobs:
       env:
         AWS_REGION: ${{ env.AWS_REGION }}
 
-    - name: Set up JDK and Maven
+    - name: Set up JDK
       uses: actions/setup-java@v4
       with:
         java-version: 17
         distribution: temurin
         cache: maven
-        mvn: true   # ensures mvn CLI is available
+
+    - name: Install Maven
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y maven
+        mvn -v   # sanity check
 
     - name: Build with Maven
+      working-directory: ${{ github.workspace }}
       run: mvn clean package -DskipTests -B    
 
     - name: Set up Docker Buildx
