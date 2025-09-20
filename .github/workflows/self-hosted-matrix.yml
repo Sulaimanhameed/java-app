@@ -18,7 +18,7 @@ jobs:
     runs-on: arc-runner-set   # This should match your ARC runner set name
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -30,10 +30,13 @@ jobs:
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          driver: docker-container
+          version: latest
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
