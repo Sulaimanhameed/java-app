@@ -21,7 +21,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    
+
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
@@ -30,6 +30,24 @@ jobs:
         registry-type: private
       env:
         AWS_REGION: ${{ env.AWS_REGION }}
+
+    - name: Set up JDK 
+      uses: actions/setup-java@v4
+      with:
+          java-version: 17
+          distribution: 'temurin'
+          cache: 'maven'
+      
+      # Generate Maven wrapper if it doesn't exist
+    - name: Generate Maven Wrapper
+      run: |
+        if [ ! -f "./mvnw" ]; then
+            mvn wrapper:wrapper
+            chmod +x ./mvnw
+        fi
+  
+    - name: Build with Maven
+      run: ./mvnw clean package -DskipTests -B    
 
       
     - name: Set up Docker Buildx
