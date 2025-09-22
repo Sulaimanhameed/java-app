@@ -1,80 +1,58 @@
-name: Build and Push to ECR
+name: Java Matrix Build and Docker Publish
 
 on:
   push:
-    branches: [main]
+    branches: [ "main" ]
   workflow_dispatch:
 
-permissions:
-  id-token: write
-  contents: read
-
-env:
-  AWS_REGION: us-west-2
-  ECR_REPOSITORY: java-app
-
 jobs:
-  build-and-push:
-    runs-on: arc-runner-set
+  build-and-publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        java-version: [17, 21, 24]
+        os: [ubuntu-24.04]
+    
+    runs-on: ${{ matrix.os }}
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-
-
-    - name: Set up JDK
-      uses: actions/setup-java@v4
-      with:
-        java-version: 17
-        distribution: temurin
-        cache: maven
-
-    - name: Install Maven
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y maven
-        mvn -v   # sanity check
-    - name: Build with Maven
-      working-directory: ${{ github.workspace }}
-      run: mvn clean package -DskipTests -B    
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      with:
-        platforms: linux/amd64
-        driver: docker-container
-        install: true
-
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        file: ./Dockerfile
-        push: true
-        platforms: linux/amd64
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        provenance: false
-    
-    - name: Image info
-      run: |
-        echo "Image pushed successfully!"
-        echo "Repository: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
-        echo "Tags: latest, ${{ github.sha }}"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+      
+      # Generate Maven wrapper if it doesn't exist
+      - name: Generate Maven Wrapper
+        run: |
+          if [ ! -f "./mvnw" ]; then
+            mvn wrapper:wrapper
+            chmod +x ./mvnw
+          fi
+      
+      - name: Build with Maven
+        run: ./mvnw clean package -DskipTests -B
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          build-args: |
+            JAVA_VERSION=${{ matrix.java-version }}
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:java-${{ matrix.java-version }}
+            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:java-${{ matrix.java-version }}-${{ github.sha }}
