@@ -1,28 +1,27 @@
-name: Java Matrix Build and Docker Publish
+name: Build and Push to ACR
 
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
 
+env:
+  ACR_NAME: myrunner
+  IMAGE_NAME: myrunner.azurecr.io/springboot-app
+
 jobs:
-  build-and-publish:
-    strategy:
-      fail-fast: false
-      matrix:
-        java-version: [17, 21, 24]
-    
-    runs-on: self-hosted
+  build:
+    runs-on: arc-runner-set
     
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up JDK ${{ matrix.java-version }}
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ matrix.java-version }}
-          distribution: temurin
+          java-version: '17'
+          distribution: 'temurin'
           cache: maven
 
       - name: Install Maven
@@ -32,24 +31,26 @@ jobs:
           mvn -v   # sanity check
       
       - name: Build with Maven
-        run: mvn clean package -DskipTests -B    
+        run: |
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
       
-      - name: Build and push Docker image
+      - name: Set up Docker Buildx
+      
+      
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          build-args: |
-            JAVA_VERSION=${{ matrix.java-version }}
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:java-${{ matrix.java-version }}
-            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:java-${{ matrix.java-version }}-${{ github.sha }}
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
