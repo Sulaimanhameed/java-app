@@ -39,8 +39,9 @@ jobs:
       
       - name: Login to ACR
         run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          az acr login --name ${{ env.ACR_NAME }}
+          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ env.ACR_NAME }}.azurecr.io \
+            --username ${{ secrets.ACR_USERNAME }} \
+            --password-stdin
       
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
@@ -50,6 +51,8 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.run_number }}
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
       
       - name: Build Summary
         run: |
